@@ -1,5 +1,7 @@
 
+import argparse
 import tkinter as tk
+from pathlib import Path
 from datetime import datetime as DT
 from carpark import CarParkingSystem
 
@@ -9,10 +11,10 @@ class ParkingSpaceNode:
         self.next = None
 
 class CarParkingGUI:
-    def __init__(self, master):
+    def __init__(self, master, csv_file=None):
         self.master = master
         self.master.title("Car Parking System")
-        self.parking_system = CarParkingSystem()
+        self.parking_system = CarParkingSystem(csv_file)
 
         self.label = tk.Label(master, text="Welcome to the Car Parking System")
         self.label.pack()
@@ -170,9 +172,13 @@ class CarParkingGUI:
         self.master.destroy()
 
 def main():
+    parser = argparse.ArgumentParser(description="Car parking desktop application.")
+    parser.add_argument("--data-file", type=Path, help="CSV file to use; defaults to parkingRecords.csv beside the module.")
+    args = parser.parse_args()
     root = tk.Tk()
-    app = CarParkingGUI(root)
+    app = CarParkingGUI(root, args.data_file)
     root.mainloop()
 
 if __name__ == "__main__":
     main()
+
