@@ -1,47 +1,55 @@
-# Car parking desktop prototype: architecture and maintenance
+# Car parking application: architecture and operation
 
-Reviewed source: `b694ee19476e78ef89601732d083c4c4d3d4a97c`. Maintenance date: 11 November 2026. This document describes inspected code, the bounded fixes in this change and future work separately. It does not establish production deployment or measured scale. Original coursework/learning material and prior authorship remain identifiable; this maintenance was AI-assisted.
+Current maintenance review: **14 November 2026**, against repository base `3a7f5572e21d92541be6ded72935807d2af7fb82`. Original recovered coursework is preserved in [coursework/original](../coursework/original/). This document describes the maintained root-level application; it does not describe a deployed service.
 
-## Implemented architecture
+## Components and data flow
 
 ```mermaid
 flowchart TD
-    CLI["CLI: carpark.py"] --> D["CarParkingSystem domain methods"]
-    GUI["Tkinter: gui.py"] --> D
-    D --> L["Linked list of seven parking spaces"]
-    D --> R["In-memory active and historical records"]
-    R --> C["Atomic CSV file replacement"]
-    C --> R
+    C["CLI menu: carpark.py"] --> M["CarParkingSystem"]
+    G["Tkinter callbacks: gui.py"] --> M
+    M --> L["Seven linked parking-space nodes"]
+    M --> R["Active and historical records in memory"]
+    R --> W["Flush temporary file and atomically replace"]
+    W --> F["Six-column local CSV"]
+    F --> R
 ```
 
-| Component | Source | Responsibility |
+`getAvailableSpaces()` enumerates the linked-list space IDs; despite its name, it does not subtract occupancy. `createParkingSpace()` subtracts the IDs of active records and chooses randomly from the remainder. Only rows whose exit time equals `Parking...` reserve a space. A full park returns `None`. Released rows remain as history and no longer reserve a space.
+
+| CSV column, in order | Contract |
+| --- | --- |
+| Registration Number | Format-checked `AA00AAA` on interactive entry |
+| Ticket Number | Random digits/letters combined with the registration |
+| Parking ID Number | Space ID from 1 through 7 |
+| Entry Time | Local timestamp, `%Y-%m-%d %H:%M:%S.%f` |
+| Exit Time | Timestamp, or `Parking...` for an active stay |
+| Parking Fee | Calculated GBP amount, or `Parking...` while active |
+
+The loader accepts an empty file, a missing file, or the exact header plus six-field records. It accepts UTF-8 with or without a BOM. A mismatched header or record width raises `ValueError` before a write. This is schema validation, not complete semantic validation of every historical field; malformed timestamps or space IDs can still fail when used.
+
+## Decisions and their consequences
+
+| Decision | Reason | Boundary |
 | --- | --- | --- |
-| CLI and domain logic | carpark.py | Entry, exit, registration checks, ticket lookup and fees. |
-| Desktop view | gui.py | Tkinter callbacks use the shared parking-system class. |
-| Persistence | parkingRecords.csv | Six-column local file; default path is now module-relative; an explicit path supports isolated tests. |
+| Keep the original linked-list and CSV model | Makes the coursework data structures inspectable | Seven spaces; growing history is scanned in memory |
+| Derive occupancy from active records | Departed vehicles release capacity without deleting history | No shared-writer locking |
+| Atomic replacement after flush/fsync | Failure before replacement preserves existing on-disk bytes | No cross-process transaction or automatic backup |
+| Accept explicit `--data-file` in both interfaces | Isolates demonstrations from historical records | The caller creates a writable parent directory |
+| Validate the known header instead of skipping any first row | Prevents silently dropping headerless data or misreading another schema | CSV content otherwise remains trusted local project data |
 
-## Engineering decisions in this change
+Fees are `round(max(0, duration.total_seconds()) / 3600 * 2, 2)`. Negative elapsed time is clamped at zero. Times are naive local datetimes; daylight-saving and timezone policies are not implemented. Tickets are lookup strings, not authentication credentials or guaranteed unique IDs.
 
-Only active records reserve a space. A full car park returns None rather than calling random.choice on an empty collection. Negative elapsed time cannot produce a negative fee. CSV writes use a flushed temporary file and atomic replacement to protect an existing file from partial writes.
+## Failure and recovery
 
-## Reproduce checks and run
+Back up a data file before manually editing it. For a header error, open a copy and compare it with the table above; do not delete the first data row to make loading succeed. For permission or disk errors, preserve the existing file, choose a writable directory and restart. CSV replacement failure leaves the existing file intact, but a failed action can leave in-memory state ahead of disk; close and reopen before retrying. The GUI does not yet wrap every I/O error in a recovery dialog.
 
-Run from the repository root with Python 3.12 or Node 22 as appropriate. Use a virtual environment before installing Python dependencies.
+Do not run the GUI and CLI against the same file simultaneously. Independent processes load separate in-memory copies and a later save can overwrite another process's work. This is a one-operator local model.
 
-```bash
-python -m unittest discover -s tests -v
-```
+## A defensible next design
 
-6 regressions cover full capacity, historical releases, one free space, empty CSV, failed replacement preserving prior bytes and fee boundaries.
+For multiple operators, extract entry and exit into shared service methods used by both interfaces. Replace CSV occupancy writes with SQLite transactions and uniqueness constraints for an active space, active registration and ticket. Introduce migrations, UTC timestamps, retryable UI errors and an explicit retention policy. Preserve CSV as an import/export adapter. Validate simultaneous reservations and crash recovery before claiming concurrent operation; measure history size and query time before choosing indexes or a hosted database.
 
-## Current boundaries
+## Maintenance boundary
 
-CSV replacement is atomic for one writer; it does not provide cross-process locking or a database transaction. GUI operations remain synchronous and duplicate some orchestration. This is a single-process, seven-space learning prototype, not a multi-site booking service. The registration check supports the modern UK example format only.
-
-## Scaling path and acceptance evidence
-
-Keep the current model for one local operator. Before concurrent operators, move occupancy into SQLite transactions with a unique constraint for active space and registration; use one service boundary for both views. Index historical tickets rather than scanning growing records. Measure allocation time and record-count memory before changing storage.
-
-## Maintenance and recovery
-
-Keep data and credentials out of source changes. Reproduce a failure with synthetic inputs before modifying a transformation or user action. Run the focused CI checks, review changes to input/output contracts and retain the prior commit for rollback. Back up local CSV/database inputs outside the working tree before manual runs. Revert the maintenance commit to roll back code; preserve data separately because reverting code does not reverse data mutations. Record environment versions, input schema, failure steps and expected/actual behavior in future bug reports.
+Earlier November maintenance fixed full-capacity allocation, occupancy after exit, negative fees and atomic writes. This update adds header/BOM validation and explicit file selection. It does not rewrite the recovered assignment or claim that the new code received the historical 99% result. [Verification](VERIFICATION.md) records nine automated regressions; interactive GUI workflows have not been manually evaluated in this update.

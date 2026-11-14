@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "module_code": "CSC-40044",
+  "module_title": "System Design & Programming",
+  "academic_year": "2023/24",
+  "programme": "MSc Computer Science",
+  "institution": "Keele University",
+  "final_module_mark_percent": 99,
+  "cats_credits": 15,
+  "mark_evidence": {
+    "source": "Official final academic transcript",
+    "issued": "2025-01-15",
+    "visually_verified": "2026-11-14",
+    "published": false,
+    "scope": "Final module mark, not component marks or a grade for later maintenance"
+  },
+  "programme_source": {
+    "url": "https://www.keele.ac.uk/media/keeleuniversity/sas/qa/pgtprogrammespecifications/pgtprogspecs2023-24/Programme-Specification-Computer-Science-Taught-Masters-2023-24.pdf",
+    "page": 4,
+    "scope": "Module title/code and 15 CATS in the 2023/24 programme"
+  },
+  "repository_base": {
+    "branch": "main",
+    "commit_sha": "3a7f5572e21d92541be6ded72935807d2af7fb82",
+    "tree_sha": "e4806cb2915def01c99c15149a07e507aa9dc546"
+  },
+  "original_material": {
+    "recovered": "2026-11-14",
+    "source": "Local system design assignment folder",
+    "official_brief_status": "Not located",
+    "complete_submission_status": "Not established",
+    "artifacts": [
+      {
+        "path": "coursework/original/carpark.py",
+        "sha256": "5ba27de4c0c472d018ee5751d17dbf4c6c2f5b57c5cee2fbbaa407e02769c462",
+        "size": 6936
+      },
+      {
+        "path": "coursework/original/cmdui.py",
+        "sha256": "c5178c83785d60cb8572c331133f5160d784f39a963b94bfaf51ee0e6abdea9c",
+        "size": 1040
+      },
+      {
+        "path": "coursework/original/gui.py",
+        "sha256": "8c74295088d25b3039eddc635432a1794b79208e7be282ecaf9847affe39fdf5",
+        "size": 7309
+      }
+    ]
+  },
+  "maintenance": {
+    "date": "2026-11-14",
+    "ai_assisted": true,
+    "changes": [
+      "Reviewable academic/project documentation",
+      "Recovered-source preservation",
+      "CSV header/BOM validation",
+      "Explicit CSV path for GUI and CLI",
+      "Behavioural regression tests"
+    ],
+    "not_original_assessment": true
+  }
+}

@@ -1,5 +1,6 @@
 
 
+import argparse
 import csv
 from datetime import datetime as DT
 import re
@@ -25,9 +26,11 @@ class CarParkingSystem:
 
     def loadParkingRecords(self):
         try:
-            with open(self.csv_file, mode='r', newline='') as file:
+            with open(self.csv_file, mode='r', newline='', encoding='utf-8-sig') as file:
                 reader = csv.reader(file)
-                next(reader, None)  # Empty files have no records
+                header = next(reader, None)
+                if header is not None and header != self.csv_titles:
+                    raise ValueError("Parking CSV header does not match the six-column parking schema")
                 self.car_parking_records = [row for row in reader if row]
                 if any(len(row) != len(self.csv_titles) for row in self.car_parking_records):
                     raise ValueError("Parking CSV contains a record with an invalid column count")
@@ -199,6 +202,10 @@ class CarParkingSystem:
                 print("Invalid choice. Kindly select a valid option.")
 
 if __name__ == "__main__":
-    parking_system = CarParkingSystem()
+    parser = argparse.ArgumentParser(description="Local seven-space car parking prototype.")
+    parser.add_argument("--data-file", type=Path, help="CSV file to use; defaults to parkingRecords.csv beside the module.")
+    args = parser.parse_args()
+    parking_system = CarParkingSystem(args.data_file)
     parking_system.mainMenu()
+
 
